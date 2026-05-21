@@ -36,6 +36,13 @@
         <input id="setup-password-confirm" type="password" placeholder="Confirm password" autocomplete="new-password" />
         <button type="submit" class="btn btn-primary">create admin</button>
       </form>
+      <!-- OTP step (shown after password accepted) -->
+      <form id="otp-form" class="login-form" style="display:none;">
+        <div id="otp-sub" class="login-sub" style="font-size:0.85em;color:#aaa;">Check your email for a 6-digit code</div>
+        <input id="otp-code" type="text" placeholder="6-digit code" autocomplete="one-time-code" inputmode="numeric" maxlength="6" />
+        <button type="submit" class="btn btn-primary">verify</button>
+        <button type="button" id="otp-back-btn" class="btn" style="margin-top:4px;background:transparent;color:#aaa;font-size:0.8em;">← back</button>
+      </form>
       <div id="login-error" class="login-error"></div>
     </div>
   </div>

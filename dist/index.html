@@ -7,13 +7,13 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#1a1a2e" />
   <title>Hermes Control Interface</title>
-  <link rel="icon" type="image/svg+xml" href="/assets/favicon-Bkag5KeL.svg" />
+  <link rel="icon" type="image/svg+xml" href="/her/assets/favicon-Bkag5KeL.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/styles/github-dark.min.css" crossorigin="anonymous">
-  <script type="module" crossorigin src="/assets/index-DVChMEaB.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-CkBYflNC.css">
+  <script type="module" crossorigin src="/her/assets/index-1Ydf1_yD.js"></script>
+  <link rel="stylesheet" crossorigin href="/her/assets/index-qEJgETd-.css">
 </head>
 <body>
   <!-- Login Overlay (shown before auth) -->
@@ -34,6 +34,13 @@
         <input id="setup-password-confirm" type="password" placeholder="Confirm password" autocomplete="new-password" />
         <button type="submit" class="btn btn-primary">create admin</button>
       </form>
+      <!-- OTP step (shown after password accepted) -->
+      <form id="otp-form" class="login-form" style="display:none;">
+        <div id="otp-sub" class="login-sub" style="font-size:0.85em;color:#aaa;">Check your email for a 6-digit code</div>
+        <input id="otp-code" type="text" placeholder="6-digit code" autocomplete="one-time-code" inputmode="numeric" maxlength="6" />
+        <button type="submit" class="btn btn-primary">verify</button>
+        <button type="button" id="otp-back-btn" class="btn" style="margin-top:4px;background:transparent;color:#aaa;font-size:0.8em;">← back</button>
+      </form>
       <div id="login-error" class="login-error"></div>
     </div>
   </div>
@@ -44,7 +51,7 @@
     <header id="topbar">
       <div class="topbar-left">
         <button class="nav-toggle" id="nav-toggle" aria-label="Toggle menu">☰</button>
-        <img src="/assets/hermes-icon-BhPDiZ8G.svg" alt="Hermes" class="brand-logo" />
+        <img src="/her/assets/hermes-icon-BhPDiZ8G.svg" alt="Hermes" class="brand-logo" />
         <div class="brand-sub">Hermes Control Interface</div>
       </div>
       <nav class="topbar-nav" id="nav">

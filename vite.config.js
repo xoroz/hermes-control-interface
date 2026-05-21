@@ -5,6 +5,7 @@ const backendWsUrl = backendUrl.replace(/^http/, 'ws');
 
 export default defineConfig({
   root: 'src',
+  base: '/her/',
   build: {
     outDir: '../dist',
     emptyOutDir: true,

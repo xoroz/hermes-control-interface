@@ -4813,137 +4813,6 @@ app.put('/api/hermes-cron/:profile/:jobId', requireCsrf, async (req, res) => {
     res.json({ ok: false, error: e.message });
   }
 });
-// Valheim server management routes
-app.get('/api/valheim/status', requireAuth, async (req, res) => {
-  try {
-    const { isRunning, pid, uptime } = await getValheimStatus();
-    const logTail = await getValheimLogTail(10);
-    res.json({ ok: true, running: isRunning, pid, uptime, logTail });
-  } catch (e) {
-    res.json({ ok: false, error: e.message });
-  }
-});
-
-app.post('/api/valheim/start', requireAuth, async (req, res) => {
-  try {
-    const { isRunning } = await getValheimStatus();
-    if (isRunning) {
-      return res.json({ ok: true, message: 'Valheim server is already running' });
-    }
-    await startValheim();
-    // Wait a bit for server to start
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    const { isRunning: nowRunning } = await getValheimStatus();
-    if (nowRunning) {
-      addNotification('success', 'Valheim server started');
-      res.json({ ok: true, message: 'Valheim server started' });
-    } else {
-      res.json({ ok: false, error: 'Failed to start Valheim server' });
-    }
-  } catch (e) {
-    res.json({ ok: false, error: e.message });
-  }
-});
-
-app.post('/api/valheim/stop', requireAuth, async (req, res) => {
-  try {
-    const { isRunning } = await getValheimStatus();
-    if (!isRunning) {
-      return res.json({ ok: true, message: 'Valheim server is not running' });
-    }
-    await stopValheim();
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    const { isRunning: nowRunning } = await getValheimStatus();
-    if (!nowRunning) {
-      addNotification('info', 'Valheim server stopped');
-      res.json({ ok: true, message: 'Valheim server stopped' });
-    } else {
-      res.json({ ok: false, error: 'Failed to stop Valheim server' });
-    }
-  } catch (e) {
-    res.json({ ok: false, error: e.message });
-  }
-});
-
-app.get('/api/valheim/log', requireAuth, async (req, res) => {
-  try {
-    const lines = parseInt(req.query.lines) || 50;
-    const log = await getValheimLogTail(lines);
-    res.json({ ok: true, log });
-  } catch (e) {
-    res.json({ ok: false, error: e.message });
-  }
-});
-
-// Helper functions
-async function getValheimStatus() {
-  return new Promise((resolve) => {
-    // Check for valheim_server.x86_64 process for user valheim
-    const ps = spawn('ps', ['-u', 'valheim', '-o', 'pid,comm']);
-    let output = '';
-    ps.stdout.on('data', (data) => { output += data.toString(); });
-    ps.on('close', (code) => {
-      const lines = output.trim().split('\n');
-      let isRunning = false;
-      let pid = null;
-      for (let i = 1; i < lines.length; i++) { // skip header
-        const parts = lines[i].trim().split(/\s+/);
-        if (parts.length >= 2 && parts[1] === 'valheim_server.x86_64') {
-          isRunning = true;
-          pid = parseInt(parts[0]);
-          break;
-        }
-      }
-      resolve({ isRunning, pid, uptime: null }); // uptime could be added if needed
-    });
-  });
-}
-
-async function startValheim() {
-  return new Promise((resolve, reject) => {
-    // Start the valheim server as user valheim, redirect output to log file
-    const start = spawn('sudo', ['-u', 'valheim', '/home/valheim/valheim-server/start_server.sh'], {
-      detached: true,
-      stdio: 'ignore'
-    });
-    start.unref();
-    start.on('error', (err) => { reject(err); });
-    start.on('close', (code) => { if (code === 0) resolve(); else reject(new Error(`Exit code ${code}`)); });
-  });
-}
-
-async function stopValheim() {
-  return new Promise((resolve, reject) => {
-    const stop = spawn('sudo', ['-u', 'valheim', 'pkill', '-f', 'valheim_server.x86_64']);
-    let stderr = '';
-    stop.stderr.on('data', (data) => { stderr += data.toString(); });
-    stop.on('close', (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(`pkill failed: ${stderr}`));
-      }
-    });
-    stop.on('error', (err) => { reject(err); });
-  });
-}
-
-async function getValheimLogTail(lines = 10) {
-  return new Promise((resolve, reject) => {
-    const tail = spawn('tail', ['-n', String(lines), '/home/valheim/valheim-server/server.log']);
-    let output = '';
-    tail.stdout.on('data', (data) => { output += data.toString(); });
-    tail.stdout.on('end', () => { resolve(output.trim()); });
-    tail.stderr.on('data', (data) => { /* ignore */ });
-    tail.on('error', (err) => { reject(err); });
-    tail.on('close', (code) => {
-      if (code !== 0 && !output) {
-        reject(new Error(`tail exited with code ${code}`));
-      }
-    });
-  });
-}
-
 
 const server = (() => {
   const sslCert = cfg.ssl.certFile;
@@ -5324,7 +5193,7 @@ function shutdown(signal) {
 
     // Build prompt for hermes
     const prompt = `[Message from ${m.from}]\nSubject: ${m.subject}\n\n${m.body}\n\nPlease reply to cbot.`;
-    const proc = spawn('/home/hermes/.local/bin/hermes', ['chat', '-Q', '-q', prompt], {
+    const proc = spawn('hermes', ['chat', '-Q', '-q', prompt], {
       stdio: ['ignore', 'pipe', 'pipe'],
       env: { ...process.env, HERMES_HOME: path.join(require('os').homedir(), '.hermes') },
       shell: false,

@@ -3,6 +3,16 @@
    ============================================ */
 import { Chart, registerables } from 'chart.js';
 import { toDisplayText } from './chat-render-utils.mjs';
+
+// API path prefix (resolves to /her/api/... when served under /her/)
+const _API_BASE = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+const _origFetch = window.fetch.bind(window);
+window.fetch = (resource, init) => {
+  if (typeof resource === 'string' && resource.startsWith('/api/')) {
+    resource = _API_BASE + resource;
+  }
+  return _origFetch(resource, init);
+};
 import { resolveSessionDisplayTitle } from './session-title-utils.mjs';
 import { SSE_EVENT_TYPES, mapWsType } from '../../lib/sse-events.js';
 import { wsClient } from './ws-client.js';
@@ -152,6 +162,47 @@ function updateUserMenu() {
 }
 
 // Login form
+let _otpToken = null;
+
+function showOtp() {
+  document.getElementById('login-form').style.display = 'none';
+  document.getElementById('setup-form').style.display = 'none';
+  document.getElementById('otp-form').style.display = 'flex';
+  document.getElementById('otp-code').focus();
+}
+
+document.getElementById('otp-back-btn')?.addEventListener('click', () => {
+  _otpToken = null;
+  document.getElementById('otp-form').style.display = 'none';
+  document.getElementById('login-form').style.display = 'flex';
+  document.getElementById('login-error').textContent = '';
+});
+
+document.getElementById('otp-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const code = document.getElementById('otp-code').value.trim();
+  const errorEl = document.getElementById('login-error');
+  try {
+    const res = await fetch('/api/auth/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ otp_token: _otpToken, code }),
+      credentials: 'include',
+    });
+    const data = await res.json();
+    if (data.ok) {
+      state.user = data.user;
+      state.csrfToken = data.csrfToken || '';
+      errorEl.textContent = '';
+      showApp();
+    } else {
+      errorEl.textContent = data.error || 'Invalid code';
+    }
+  } catch (err) {
+    errorEl.textContent = 'Connection error';
+  }
+});
+
 document.getElementById('login-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const username = document.getElementById('login-username').value;
@@ -171,8 +222,11 @@ document.getElementById('login-form')?.addEventListener('submit', async (e) => {
       state.csrfToken = data.csrfToken || '';
       errorEl.textContent = '';
       showApp();
+    } else if (data.otp_required) {
+      _otpToken = data.otp_token;
+      errorEl.textContent = '';
+      showOtp();
     } else if (data.error === 'first_run') {
-      // No users exist — show setup form
       showSetup();
     } else {
       errorEl.textContent = data.error || 'Login failed';
@@ -3269,7 +3323,7 @@ async function loadXtermAndConnect(command) {
 
     // Connect WebSocket
     const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(`${wsProtocol}//${location.host}/ws`);
+    const ws = new WebSocket(`${wsProtocol}//${location.host}${_API_BASE}/ws`);
     termWs = ws;
 
     let commandSent = false;
